@@ -1,6 +1,6 @@
+---
 name: context-keeper:compact
 description: Prune stale, verbose, or resolved entries from context-keeper memory files. Keeps files concise without losing critical information. Failed attempts are never deleted — only compressed. Use when any context file exceeds 80 lines, or when the user explicitly asks to compact context.
-
 ---
 
 # context-keeper:compact

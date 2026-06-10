@@ -1,3 +1,4 @@
+---
 name: context-keeper:recall
 description: Read the repo's context-keeper memory and resume work. Surfaces current task, open decisions, failed attempts, and next steps before continuing. Use at the start of any session where context-keeper has been initialized, or when the user asks to continue previous work.
 ---
