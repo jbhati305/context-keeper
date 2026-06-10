@@ -25,7 +25,7 @@ Read:
 ## Step 3 — Compact DECISIONS.md
 
 Rules:
-- Remove any entry marked `[RESOLVED]` whose date is more than 7 days ago, unless another open entry explicitly depends on it.
+- Remove any entry marked `[RESOLVED]` whose date is 8 or more days ago, unless another open entry explicitly depends on it.
 - Keep all `[OPEN]` entries.
 - Do not shorten or rewrite kept entries.
 
