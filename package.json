@@ -1,0 +1,5 @@
+{
+  "name": "context-keeper",
+  "version": "1.0.0",
+  "description": "Claude Code plugin for structured session working memory"
+}
