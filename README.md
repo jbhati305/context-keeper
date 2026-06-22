@@ -5,10 +5,11 @@ A Claude Code plugin that keeps long coding sessions clean by maintaining a stru
 ## Install (global)
 
 ```bash
-cp -r context-keeper ~/.claude/plugins/context-keeper
+git clone https://github.com/jbhati305/context-keeper.git
+cp -r context-keeper/skills/. ~/.claude/skills/
 ```
 
-That's it. Skills are available immediately in any Claude Code session.
+That's it. Skills are available in any new Claude Code session.
 
 ## Quickstart
 
