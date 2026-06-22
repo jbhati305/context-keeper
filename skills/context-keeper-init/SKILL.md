@@ -1,6 +1,6 @@
 ---
 name: context-keeper:init
-description: Initialize context-keeper working memory in the current repo. Creates .claude/context/ with five structured markdown files for tracking the current task, decisions, failed attempts, changed files, and next steps. Run once per repo before using any other context-keeper skill.
+description: Initialize context-keeper working memory in the current repo. Creates .claude/context/ with five structured markdown files for tracking the current task, decisions, failed attempts, changed files, and next steps. Also sets up automatic hooks so context is injected at session start and before compaction. Run once per repo before using any other context-keeper skill.
 ---
 
 # context-keeper:init
@@ -96,7 +96,81 @@ active
 <!-- Items waiting on something external -->
 ```
 
-## Step 4 — Scan the repo
+## Step 4 — Set up automatic hooks
+
+Create `.claude/hooks/` directory, write the hook script, and wire it into `.claude/settings.json`.
+
+**Create `.claude/hooks/ck-inject.sh`** with this exact content:
+
+```bash
+#!/usr/bin/env bash
+# context-keeper: auto-inject context files into Claude sessions
+CTX=".claude/context"
+[ -d "$CTX" ] || exit 0
+
+CONTENT=""
+for f in "$CTX"/*.md; do
+    [ -f "$f" ] || continue
+    CONTENT="${CONTENT}--- $(basename "$f") ---
+$(cat "$f")
+
+"
+done
+
+[ -z "$CONTENT" ] && exit 0
+
+if [ "${1:-}" = "PreCompact" ]; then
+    jq -n --arg content "$CONTENT" \
+        '{"hookSpecificOutput":{"hookEventName":"PreCompact","additionalContext":("IMPORTANT: Invoke context-keeper:compact before compacting this conversation to update and prune context files.\n\nCurrent context files:\n\n"+$content)}}'
+else
+    jq -n --arg content "$CONTENT" \
+        '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":("context-keeper context:\n\n"+$content)}}'
+fi
+```
+
+After writing the file, make it executable:
+```bash
+chmod +x .claude/hooks/ck-inject.sh
+```
+
+**Create or update `.claude/settings.json`:**
+
+If `.claude/settings.json` already exists, read it first and merge only the `hooks` section into the existing content, preserving all other settings (permissions, env, model, etc.). If it does not exist, create it with:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "bash .claude/hooks/ck-inject.sh SessionStart 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "bash .claude/hooks/ck-inject.sh PreCompact 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**What these hooks do:**
+- `SessionStart` — at the start of every Claude session in this repo, reads all `.claude/context/*.md` files and injects their content as additional context automatically. No manual recall needed.
+- `PreCompact` — before Claude compacts a long conversation, injects the current context files and a reminder to run `context-keeper:compact` first so context is updated before it disappears.
+
+## Step 5 — Scan the repo
 
 Inspect the following (read only what exists, skip what doesn't):
 - `README.md`
@@ -107,12 +181,12 @@ Inspect the following (read only what exists, skip what doesn't):
 
 Write a concise 3–5 sentence summary into the **Project Context** section of `.claude/context/CURRENT_TASK.md`. Cover: language/stack, main directory layout, testing approach (if visible), key conventions (if visible).
 
-## Step 5 — Ask for the current task
+## Step 6 — Ask for the current task
 
 Say: "Context initialized. What is the current task or goal for this session?"
 
 Write their answer into the **Goal** section of `.claude/context/CURRENT_TASK.md`.
 
-## Step 6 — Warn about secrets
+## Step 7 — Warn about secrets
 
 Say: "⚠️ Security reminder: never store API keys, tokens, passwords, or connection strings in `.claude/context/` files. If you plan to commit this directory, treat it like any other source file."

@@ -69,19 +69,3 @@ Tell the user:
 - Which failed attempt entries were compressed (not deleted).
 - Whether any files still exceed 80 lines after compaction.
 
----
-
-After writing, verify:
-```bash
-head -5 /home/afs/Projects/context-keeper/skills/compact/SKILL.md
-```
-
-Then commit:
-```bash
-git -C /home/afs/Projects/context-keeper add skills/compact/SKILL.md
-git -C /home/afs/Projects/context-keeper commit -m "feat: add context-keeper:compact skill"
-```
-
-Do NOT add any Co-Authored-By lines to the commit message.
-
-Report: **DONE** or **BLOCKED: [reason]**

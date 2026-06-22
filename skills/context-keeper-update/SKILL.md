@@ -124,19 +124,3 @@ If any file exceeds 80 lines: say "`.claude/context/[filename]` is getting long.
 
 Also scan the content you just wrote for patterns resembling API keys, tokens, or passwords (long alphanumeric strings, strings matching `sk-...`, `Bearer ...`, `password=...`). If found: warn the user and do not write those values into context files.
 
----
-
-After writing, verify:
-```bash
-head -5 /home/afs/Projects/context-keeper/skills/update/SKILL.md
-```
-
-Then commit:
-```bash
-git -C /home/afs/Projects/context-keeper add skills/update/SKILL.md
-git -C /home/afs/Projects/context-keeper commit -m "feat: add context-keeper:update skill"
-```
-
-Do NOT add any Co-Authored-By lines to the commit message.
-
-Report: **DONE** or **BLOCKED: [reason]**
