@@ -105,6 +105,16 @@ Create `.claude/hooks/` directory, write the hook script, and wire it into `.cla
 ```bash
 #!/usr/bin/env bash
 # context-keeper: auto-inject context files into Claude sessions
+EVENT="${1:-SessionStart}"
+
+# Stop hook: remind to update context after real work (commits in last 2h)
+if [ "$EVENT" = "Stop" ]; then
+    if git log --since="2 hours ago" --oneline 2>/dev/null | grep -q .; then
+        jq -n '{"systemMessage": "context-keeper: ask me to run context-keeper:update to save session context."}'
+    fi
+    exit 0
+fi
+
 CTX=".claude/context"
 [ -d "$CTX" ] || exit 0
 
@@ -119,7 +129,7 @@ done
 
 [ -z "$CONTENT" ] && exit 0
 
-if [ "${1:-}" = "PreCompact" ]; then
+if [ "$EVENT" = "PreCompact" ]; then
     jq -n --arg content "$CONTENT" \
         '{"hookSpecificOutput":{"hookEventName":"PreCompact","additionalContext":("IMPORTANT: Invoke context-keeper:compact before compacting this conversation to update and prune context files.\n\nCurrent context files:\n\n"+$content)}}'
 else
@@ -161,6 +171,17 @@ If `.claude/settings.json` already exists, read it first and merge only the `hoo
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 5,
+            "command": "bash .claude/hooks/ck-inject.sh Stop 2>/dev/null || true"
+          }
+        ]
+      }
     ]
   }
 }
@@ -169,6 +190,7 @@ If `.claude/settings.json` already exists, read it first and merge only the `hoo
 **What these hooks do:**
 - `SessionStart` — at the start of every Claude session in this repo, reads all `.claude/context/*.md` files and injects their content as additional context automatically. No manual recall needed.
 - `PreCompact` — before Claude compacts a long conversation, injects the current context files and a reminder to run `context-keeper:compact` first so context is updated before it disappears.
+- `Stop` — after Claude finishes responding, checks if any commits were made in the last 2 hours. If yes, shows a UI message prompting you to ask Claude to run `context-keeper:update`.
 
 ## Step 5 — Scan the repo
 
