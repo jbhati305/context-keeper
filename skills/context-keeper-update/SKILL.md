@@ -19,9 +19,18 @@ Say once: "Good stopping point — want me to update context-keeper?" Do not rep
 
 ---
 
+## Step 0 — Locate the context directory
+
+Run:
+```bash
+bash ~/.claude/context-keeper/ck.sh dir 2>/dev/null || echo .claude/context
+```
+
+Call the printed path `CTX`. Wherever this skill says `CTX/`, use that directory. In home mode it is outside the repo; never create context files inside the repo then.
+
 ## Step 1 — Check context exists
 
-Check whether `.claude/context/CURRENT_TASK.md` exists.
+Check whether `CTX/CURRENT_TASK.md` exists.
 
 If it does not exist: tell the user "No context found. Run `context-keeper:init` first." Then stop.
 
@@ -38,7 +47,7 @@ Use this output to identify which files have been modified, added, or deleted si
 
 For each file shown in `git status --short`:
 
-1. Open `.claude/context/CHANGED_FILES.md`.
+1. Open `CTX/CHANGED_FILES.md`.
 2. Search for a `##` heading matching the file path.
 3. If found: rewrite that block with updated reason, summary, and today's date.
 4. If not found: append a new block at the end.
@@ -58,7 +67,7 @@ Use today's date. If you are unsure why a file changed, ask the user.
 Ask the user: "Were any architectural or implementation decisions made during this work?"
 
 If yes:
-1. Open `.claude/context/DECISIONS.md`.
+1. Open `CTX/DECISIONS.md`.
 2. For each decision: search for an existing `##` heading matching it.
 3. If found: update that block.
 4. If not found: append a new `[OPEN]` entry.
@@ -78,7 +87,7 @@ If no decisions were made, skip this step.
 Ask the user: "Did anything fail that we should remember to avoid next time?"
 
 If yes:
-1. Open `.claude/context/FAILED_ATTEMPTS.md`.
+1. Open `CTX/FAILED_ATTEMPTS.md`.
 2. For each failure: search for an existing `##` heading matching it.
 3. If found: update that block.
 4. If not found: append a new entry.
@@ -96,7 +105,7 @@ If nothing failed, skip this step.
 
 ## Step 6 — Rewrite NEXT_STEPS.md
 
-Replace the entire contents of `.claude/context/NEXT_STEPS.md` with a fresh assessment of current state:
+Replace the entire contents of `CTX/NEXT_STEPS.md` with a fresh assessment of current state:
 
 ```
 # Next Steps
@@ -117,10 +126,10 @@ This is a full replace, not an append. Base it on what you know about the curren
 
 For each context file, check its line count:
 ```
-wc -l .claude/context/*.md
+wc -l CTX/*.md
 ```
 
-If any file exceeds 80 lines: say "`.claude/context/[filename]` is getting long. Run `context-keeper:compact` to clean it up." Say this once per update, for the longest offending file only.
+If any file exceeds 80 lines: say "`CTX/[filename]` is getting long. Run `context-keeper:compact` to clean it up." Say this once per update, for the longest offending file only.
 
 Also scan the content you just wrote for patterns resembling API keys, tokens, or passwords (long alphanumeric strings, strings matching `sk-...`, `Bearer ...`, `password=...`). If found: warn the user and do not write those values into context files.
 

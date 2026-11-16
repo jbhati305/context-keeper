@@ -1,30 +1,39 @@
 ---
 name: context-keeper:handoff
-description: Generate a clean, human-readable handoff note from context-keeper memory. Creates .claude/context/HANDOFF.md summarizing current goal, completed work, decisions, failed attempts, changed files, and next steps. Safe to paste into a PR description, Slack message, or a new Claude Code session.
+description: Generate a clean, human-readable handoff note from context-keeper memory. Creates HANDOFF.md in the context directory summarizing current goal, completed work, decisions, failed attempts, changed files, and next steps. Safe to paste into a PR description, Slack message, or a new Claude Code session.
 ---
 
 # context-keeper:handoff
 
 You are generating a clean handoff document from context-keeper working memory.
 
+## Step 0 — Locate the context directory
+
+Run:
+```bash
+bash ~/.claude/context-keeper/ck.sh dir 2>/dev/null || echo .claude/context
+```
+
+Call the printed path `CTX`. Wherever this skill says `CTX/`, use that directory. In home mode it is outside the repo; never create context files inside the repo then.
+
 ## Step 1 — Check context exists
 
-Check whether `.claude/context/CURRENT_TASK.md` exists.
+Check whether `CTX/CURRENT_TASK.md` exists.
 
 If it does not exist: tell the user "No context found. Run `context-keeper:init` first." Then stop.
 
 ## Step 2 — Read all context files
 
 Read:
-- `.claude/context/CURRENT_TASK.md`
-- `.claude/context/DECISIONS.md`
-- `.claude/context/FAILED_ATTEMPTS.md`
-- `.claude/context/CHANGED_FILES.md`
-- `.claude/context/NEXT_STEPS.md`
+- `CTX/CURRENT_TASK.md`
+- `CTX/DECISIONS.md`
+- `CTX/FAILED_ATTEMPTS.md`
+- `CTX/CHANGED_FILES.md`
+- `CTX/NEXT_STEPS.md`
 
 ## Step 3 — Generate HANDOFF.md
 
-Create or overwrite `.claude/context/HANDOFF.md` with this structure:
+Create or overwrite `CTX/HANDOFF.md` with this structure:
 
 ```
 # Handoff — [Goal from CURRENT_TASK.md]
@@ -58,23 +67,9 @@ Use today's date for the Generated field. If any section has no content, write "
 
 Show the generated `HANDOFF.md` content in the chat so the user can review it.
 
-Then say: "Saved to `.claude/context/HANDOFF.md`. Safe to paste into a PR description, Slack message, or a new Claude session."
+Then say: "Saved to `CTX/HANDOFF.md`. Safe to paste into a PR description, Slack message, or a new Claude session."
 
 ## Step 5 — Warn about secrets
 
 Scan the generated HANDOFF.md for patterns resembling API keys, tokens, or passwords. If found: warn the user and remove or redact those values before saving.
 
----
-
-After writing, verify:
-```bash
-head -5 /home/afs/Projects/context-keeper/skills/handoff/SKILL.md
-```
-
-Then commit (no Co-Authored-By lines):
-```bash
-git -C /home/afs/Projects/context-keeper add skills/handoff/SKILL.md
-git -C /home/afs/Projects/context-keeper commit -m "feat: add context-keeper:handoff skill"
-```
-
-Report: **DONE** or **BLOCKED: [reason]**

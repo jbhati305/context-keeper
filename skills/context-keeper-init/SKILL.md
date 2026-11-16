@@ -1,29 +1,40 @@
 ---
 name: context-keeper:init
-description: Initialize context-keeper working memory in the current repo. Creates .claude/context/ with five structured markdown files for tracking the current task, decisions, failed attempts, changed files, and next steps. Also sets up automatic hooks so context is injected at session start, before compaction, and updated automatically on a 2-hour cadence. Run once per repo before using any other context-keeper skill.
+description: Initialize context-keeper working memory in the current repo. Creates .claude/context/ (or, in home mode, a folder outside the repo) with five structured markdown files for tracking the current task, decisions, failed attempts, changed files, and next steps. Also sets up automatic hooks so context is injected at session start, before compaction, and updated automatically on a 2-hour cadence. Run once per repo before using any other context-keeper skill.
 ---
 
 # context-keeper:init
 
 You are initializing context-keeper working memory for this repository.
 
+## Step 0 — Locate the context directory
+
+Run:
+```bash
+bash ~/.claude/context-keeper/ck.sh dir 2>/dev/null || echo .claude/context
+```
+
+Call the printed path `CTX`. Wherever this skill says `CTX/`, use that directory.
+
+**Home mode:** if `CTX` is outside the repo (a `.context-keeper-home` file above the repo, or `$CONTEXT_KEEPER_HOME`, points elsewhere), never create or change anything inside the repo — no `.claude/` folder, no settings, no `.gitignore` edits.
+
 ## Step 1 — Check for existing context
 
-Check if `.claude/context/` already exists in the current working directory.
+Check if `CTX/` already exists in the current working directory.
 
 If it exists:
-- Tell the user: "`.claude/context/` already exists. Reinitializing will overwrite existing context. Continue? (yes/no)"
+- Tell the user: "`CTX/` already exists. Reinitializing will overwrite existing context. Continue? (yes/no)"
 - If they say no, stop here.
 
 ## Step 2 — Create the context directory
 
-Create `.claude/context/` if it does not exist.
+Create `CTX/` if it does not exist (`mkdir -p`, including parents).
 
 ## Step 3 — Write the five context files
 
 Create each file with exactly this content:
 
-### `.claude/context/CURRENT_TASK.md`
+### `CTX/CURRENT_TASK.md`
 
 ```
 # Current Task
@@ -41,7 +52,7 @@ Create each file with exactly this content:
 active
 ```
 
-### `.claude/context/DECISIONS.md`
+### `CTX/DECISIONS.md`
 
 ```
 # Decisions
@@ -54,7 +65,7 @@ active
 -->
 ```
 
-### `.claude/context/FAILED_ATTEMPTS.md`
+### `CTX/FAILED_ATTEMPTS.md`
 
 ```
 # Failed Attempts
@@ -68,7 +79,7 @@ active
 -->
 ```
 
-### `.claude/context/CHANGED_FILES.md`
+### `CTX/CHANGED_FILES.md`
 
 ```
 # Changed Files
@@ -81,7 +92,7 @@ active
 -->
 ```
 
-### `.claude/context/NEXT_STEPS.md`
+### `CTX/NEXT_STEPS.md`
 
 ```
 # Next Steps
@@ -97,6 +108,23 @@ active
 ```
 
 ## Step 4 — Set up automatic hooks
+
+### Home mode
+
+If `CTX` is outside the repo, the hooks live once in the user's settings and serve every repo:
+
+1. Check that `~/.claude/context-keeper/ck.sh` exists. If not, tell the user to install it (see the README, "Keep context outside the repo") and skip the rest of this step.
+2. Read `~/.claude/settings.json`. If its `hooks` already run `~/.claude/context-keeper/ck.sh` for `SessionStart`, `PreCompact` and `Stop`, there is nothing to do.
+3. Otherwise merge in these three hooks, preserving every other setting:
+   - `SessionStart`: `bash ~/.claude/context-keeper/ck.sh SessionStart 2>/dev/null || true` (timeout 10)
+   - `PreCompact`: `bash ~/.claude/context-keeper/ck.sh PreCompact 2>/dev/null || true` (timeout 10)
+   - `Stop`: `bash ~/.claude/context-keeper/ck.sh Stop 2>/dev/null || true` (timeout 5)
+
+The script does nothing in a repo that has no context directory, so these global hooks are harmless elsewhere. Then go to Step 5.
+
+### Repo-local mode
+
+Otherwise (`CTX` is `.claude/context`), set the hooks up inside the repo:
 
 Create `.claude/hooks/` directory, write the hook script, and wire it into `.claude/settings.json`.
 
@@ -219,14 +247,14 @@ Inspect the following (read only what exists, skip what doesn't):
 - Any `tests/`, `test/`, or `spec/` directories
 - Main entrypoints (e.g., `main.py`, `index.ts`, `src/main.rs`, `cmd/`)
 
-Write a concise 3–5 sentence summary into the **Project Context** section of `.claude/context/CURRENT_TASK.md`. Cover: language/stack, main directory layout, testing approach (if visible), key conventions (if visible).
+Write a concise 3–5 sentence summary into the **Project Context** section of `CTX/CURRENT_TASK.md`. Cover: language/stack, main directory layout, testing approach (if visible), key conventions (if visible).
 
 ## Step 6 — Ask for the current task
 
 Say: "Context initialized. What is the current task or goal for this session?"
 
-Write their answer into the **Goal** section of `.claude/context/CURRENT_TASK.md`.
+Write their answer into the **Goal** section of `CTX/CURRENT_TASK.md`.
 
 ## Step 7 — Warn about secrets
 
-Say: "⚠️ Security reminder: never store API keys, tokens, passwords, or connection strings in `.claude/context/` files. If you plan to commit this directory, treat it like any other source file."
+Say: "⚠️ Security reminder: never store API keys, tokens, passwords, or connection strings in `CTX/` files. If you plan to commit this directory, treat it like any other source file. (In home mode it is outside the repo and never committed with it.)"

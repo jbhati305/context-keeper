@@ -7,6 +7,7 @@ A Claude Code plugin that keeps long coding sessions clean by maintaining a stru
 ```bash
 git clone https://github.com/jbhati305/context-keeper.git
 cp -r context-keeper/skills/. ~/.claude/skills/
+mkdir -p ~/.claude/context-keeper && cp context-keeper/hooks/ck.sh ~/.claude/context-keeper/
 ```
 
 That's it. Skills are available in any new Claude Code session.
@@ -46,6 +47,21 @@ Created in `.claude/context/` when you run init:
 ```
 
 **Git strategy:** Your call. The skill warns about secrets. Many teams commit `.claude/context/` so context survives machine switches and is shareable with teammates.
+
+## Keep context outside the repo (home mode)
+
+When you work in repos you don't own, you may not want a `.claude/` folder in them at all. Point context-keeper at a folder of your own instead:
+
+```bash
+# every repo under ~/work keeps its context in ~/notes/repos/<repo>/context/
+echo "~/notes/repos" > ~/work/.context-keeper-home
+```
+
+The marker file goes in any folder *above* the repos (never inside one); its first line is the home folder (absolute, `~/...`, or relative to the marker). Setting `CONTEXT_KEEPER_HOME` does the same for every repo and takes precedence. Worktrees of one repo share its context.
+
+In home mode, `init` writes nothing inside the repo: the five files go to the home folder, and the hooks are added once to `~/.claude/settings.json`, calling `~/.claude/context-keeper/ck.sh`. That script does nothing in a repo without context, so the global hooks are harmless elsewhere. `bash ~/.claude/context-keeper/ck.sh dir` prints where the current repo's context lives.
+
+Without a marker or the variable, everything works exactly as before (`.claude/context/` in the repo).
 
 ## ⚠️ Security
 
