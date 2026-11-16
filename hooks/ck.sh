@@ -68,18 +68,33 @@ fi
 [ "$MODE" = "home" ] || exit 0
 [ -d "$CTX" ] || exit 0
 
-# Stop: on a 2-hour cadence, ask Claude to run context-keeper:update. The state
-# file sits next to the context folder, never inside it.
+# Stop: update on progress, not on a timer. Right after a new commit (or branch
+# switch); otherwise at most hourly while there are uncommitted changes; never when
+# nothing changed. The state file sits next to the context folder, never inside it,
+# and holds "<time of last update> <HEAD then> <working-tree signature then>".
 if [ "$EVENT" = "Stop" ]; then
+    REPO=$(git -C "$START" rev-parse --show-toplevel 2>/dev/null) || exit 0
     STATE_FILE="$(dirname "$CTX")/state/last-auto-update"
     NOW=$(date +%s)
-    LAST=0
-    [ -f "$STATE_FILE" ] && LAST=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
-    if [ $((NOW - LAST)) -ge 7200 ]; then
-        mkdir -p "$(dirname "$STATE_FILE")"
-        echo "$NOW" > "$STATE_FILE"
-        jq -n --arg ctx "$CTX" '{"decision":"block","reason":("context-keeper: 2+ hours have passed since the last automatic context update. Autonomously invoke the context-keeper:update skill now (do not ask the user first) to capture recent changes, decisions, and failed attempts into " + $ctx + "/*.md. Once done, continue normally.")}'
+    HEAD_NOW=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo none)
+    TREE_NOW=$({ git -C "$REPO" status --porcelain; git -C "$REPO" diff HEAD --shortstat; } 2>/dev/null | sha1sum | cut -c1-12)
+    LAST=0 HEAD_LAST="" TREE_LAST=""
+    [ -f "$STATE_FILE" ] && read -r LAST HEAD_LAST TREE_LAST < "$STATE_FILE"
+    case "$LAST" in ''|*[!0-9]*) LAST=0 ;; esac
+    save_state() { mkdir -p "$(dirname "$STATE_FILE")"; echo "$NOW $HEAD_NOW $TREE_NOW" > "$STATE_FILE"; }
+
+    # First run, or a state file from the old timer format: start tracking quietly.
+    if [ -z "$HEAD_LAST" ]; then save_state; exit 0; fi
+
+    WHY=""
+    if [ "$HEAD_NOW" != "$HEAD_LAST" ]; then
+        WHY="a new commit (or branch switch) since the last context update"
+    elif [ "$TREE_NOW" != "$TREE_LAST" ] && [ $((NOW - LAST)) -ge 3600 ]; then
+        WHY="uncommitted changes, and an hour since the last context update"
     fi
+    [ -z "$WHY" ] && exit 0
+    save_state
+    jq -n --arg ctx "$CTX" --arg why "$WHY" '{"decision":"block","reason":("context-keeper: " + $why + ". Invoke the context-keeper:update skill now, autonomously: do not ask the user anything; take decisions and failed attempts from this conversation and skip those steps when there are none. Context files are in " + $ctx + ". Then continue normally.")}'
     exit 0
 fi
 

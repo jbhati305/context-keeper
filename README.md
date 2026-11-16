@@ -61,6 +61,8 @@ The marker file goes in any folder *above* the repos (never inside one); its fir
 
 In home mode, `init` writes nothing inside the repo: the five files go to the home folder, and the hooks are added once to `~/.claude/settings.json`, calling `~/.claude/context-keeper/ck.sh`. The global hooks act only in home mode: in a repo-local repo they do nothing (its own hooks handle it), so context is never injected twice. `bash ~/.claude/context-keeper/ck.sh dir` prints where the current repo's context lives.
 
+In home mode the automatic update runs **on progress** instead of on a 2-hour timer: right after a new commit (or branch switch), otherwise at most hourly while there are uncommitted changes, and never when nothing changed. It runs without questions, taking decisions and failed attempts from the conversation.
+
 Without a marker or the variable, everything works exactly as before (`.claude/context/` in the repo).
 
 ## ⚠️ Security
