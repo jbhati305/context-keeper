@@ -59,7 +59,7 @@ echo "~/notes/repos" > ~/work/.context-keeper-home
 
 The marker file goes in any folder *above* the repos (never inside one); its first line is the home folder (absolute, `~/...`, or relative to the marker). Setting `CONTEXT_KEEPER_HOME` does the same for every repo and takes precedence. Worktrees of one repo share its context.
 
-In home mode, `init` writes nothing inside the repo: the five files go to the home folder, and the hooks are added once to `~/.claude/settings.json`, calling `~/.claude/context-keeper/ck.sh`. That script does nothing in a repo without context, so the global hooks are harmless elsewhere. `bash ~/.claude/context-keeper/ck.sh dir` prints where the current repo's context lives.
+In home mode, `init` writes nothing inside the repo: the five files go to the home folder, and the hooks are added once to `~/.claude/settings.json`, calling `~/.claude/context-keeper/ck.sh`. The global hooks act only in home mode: in a repo-local repo they do nothing (its own hooks handle it), so context is never injected twice. `bash ~/.claude/context-keeper/ck.sh dir` prints where the current repo's context lives.
 
 Without a marker or the variable, everything works exactly as before (`.claude/context/` in the repo).
 

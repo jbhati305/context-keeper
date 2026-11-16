@@ -11,11 +11,15 @@
 #      to that file). This is "home mode": nothing is ever written inside the repo.
 #   3. <repo>/.claude/context, the original repo-local layout.
 #
+# The hook events act only in home mode (1 or 2). A repo-local repo has its own hooks
+# from init, so acting here too would inject its context twice.
+#
 # <repo> is the main repository's folder name, so git worktrees share one context.
 set -u
 
 START="${CLAUDE_PROJECT_DIR:-$PWD}"
 
+# Sets CTX (the context directory) and MODE ("home" or "local").
 ck_dir() {
     local top common name home="" d line
     top=$(git -C "$START" rev-parse --show-toplevel 2>/dev/null) || top="$START"
@@ -47,20 +51,21 @@ ck_dir() {
     fi
 
     if [ -n "$home" ]; then
-        echo "${home%/}/$name/context"
+        CTX="${home%/}/$name/context"; MODE=home
     else
-        echo "$top/.claude/context"
+        CTX="$top/.claude/context"; MODE=local
     fi
 }
 
 EVENT="${1:-SessionStart}"
-CTX=$(ck_dir)
+ck_dir
 
 if [ "$EVENT" = "dir" ]; then
     echo "$CTX"
     exit 0
 fi
 
+[ "$MODE" = "home" ] || exit 0
 [ -d "$CTX" ] || exit 0
 
 # Stop: on a 2-hour cadence, ask Claude to run context-keeper:update. The state

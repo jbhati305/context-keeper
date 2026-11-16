@@ -120,7 +120,7 @@ If `CTX` is outside the repo, the hooks live once in the user's settings and ser
    - `PreCompact`: `bash ~/.claude/context-keeper/ck.sh PreCompact 2>/dev/null || true` (timeout 10)
    - `Stop`: `bash ~/.claude/context-keeper/ck.sh Stop 2>/dev/null || true` (timeout 5)
 
-The script does nothing in a repo that has no context directory, so these global hooks are harmless elsewhere. Then go to Step 5.
+The script acts only in home mode, so these global hooks do nothing in repo-local repos (their own hooks handle them) or in repos without context. Then go to Step 5.
 
 ### Repo-local mode
 
